@@ -1,0 +1,107 @@
+name: ${COMPOSE_PROJECT_NAME}
+services:
+  back:
+    ports:
+      - '127.0.0.1:${EXT_PORT}:${PORT}'
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile-dev
+    environment:
+      PORT: ${PORT}
+      NODE_ENV: ${NODE_ENV}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_LOCAL_PORT: ${POSTGRES_LOCAL_PORT}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL}
+      SALT: ${SALT}
+      DES_BY_TAX_URL: ${DES_BY_TAX_URL}
+      YID_BASE_URL: ${YID_BASE_URL}
+      YID_BACK_END_USERNAME: ${YID_BACK_END_USERNAME}
+      YID_BACK_END_PASSWORD: ${YID_BACK_END_PASSWORD}
+      JWT_ACCESS_TOKEN_KEY: ${JWT_ACCESS_TOKEN_KEY}
+      JWT_ACCESS_TOKEN_EXPIRES_IN: ${JWT_ACCESS_TOKEN_EXPIRES_IN}
+      JWT_REFRESH_TOKEN_KEY: ${JWT_REFRESH_TOKEN_KEY}
+      JWT_REFRESH_TOKEN_EXPIRES_IN: ${JWT_REFRESH_TOKEN_EXPIRES_IN}
+      AUTH_CLIENT_ID: ${AUTH_CLIENT_ID}
+      AUTH_CLIENT_SECRET: ${AUTH_CLIENT_SECRET}
+      AUTH_GRANT_TYPE: ${AUTH_GRANT_TYPE}
+      AUTH_REDIRECT_URL: ${AUTH_REDIRECT_URL}
+      MULBERRY_URL: ${MULBERRY_URL}
+      MULBERRY_SOURCE_ID: ${MULBERRY_SOURCE_ID}
+      TRANSPORT_BASE_URL: ${TRANSPORT_BASE_URL}
+      TRANSPORT_IV: ${TRANSPORT_IV}
+      TRANSPORT_SECRET_KEY: ${TRANSPORT_SECRET_KEY}
+      TRANSPORT_API_KEY: ${TRANSPORT_API_KEY}
+      PARKING_URL: ${PARKING_URL}
+      PARKING_PIN_URL: ${PARKING_PIN_URL}
+      AVV_URL: ${AVV_URL}
+      EPOLICE_URL: ${EPOLICE_URL}
+      LOCAL_AUTH_CLIENT_ID: ${LOCAL_AUTH_CLIENT_ID}
+      LOCAL_AUTH_CLIENT_SECRET: ${LOCAL_AUTH_CLIENT_SECRET}
+      LOCAL_AUTH_GRANT_TYPE: ${LOCAL_AUTH_GRANT_TYPE}
+      LOCAL_AUTH_REDIRECT_URL: ${LOCAL_AUTH_REDIRECT_URL}
+    volumes:
+      - ../:/app
+      - ../node_modules:/app/node_modules
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    restart: always
+    command: sh -c "npm install --include=dev && npm run dev"
+    networks:
+      - net
+
+  db:
+    image: postgres:${POSTGRES_VERSION:-16}-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_LOCAL_PORT: ${POSTGRES_LOCAL_PORT}
+      PGTZ: ${PGTZ}
+    ports:
+      - '127.0.0.1:${POSTGRES_DOCKER_PORT}:${POSTGRES_LOCAL_PORT}'
+    volumes:
+      - ./postgres-init/:/docker-entrypoint-initdb.d/
+      - pgdata:/var/lib/postgresql/data:rw
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-d', '${POSTGRES_DATABASE}', '-U', '${POSTGRES_USERNAME}']
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: always
+    networks:
+      - net
+
+  migrate:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile_migration
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      POSTGRES_LOCAL_PORT: ${POSTGRES_LOCAL_PORT}
+      PGTZ: ${PGTZ}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - net
+
+volumes:
+  pgdata:
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${SUB_NET}.0/24

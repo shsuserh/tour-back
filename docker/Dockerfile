@@ -1,0 +1,76 @@
+# Use the official Node.js LTS version based on Alpine Linux
+FROM node:22-alpine AS build
+
+# Update and upgrade packages
+RUN apk update && apk upgrade && \
+    apk add --no-cache git \
+    libc6-compat \
+    libreoffice \
+    ttf-freefont \
+    font-noto
+
+# Create a fonts directory (optional but organized)
+RUN mkdir -p /usr/share/fonts/ghea
+
+# Copy all your GHEA fonts into the container
+COPY fonts/*.otf /usr/share/fonts/ghea/
+
+# Rebuild the font cache so LibreOffice can see them
+RUN fc-cache -fv
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the package.json and package-lock.json first to leverage Docker cache
+COPY ../package*.json ./
+
+RUN mkdir ~/.npm-global && npm config set cache ~/.npm-global
+
+# Install the dependencies
+RUN npm install
+
+# Copy the rest of the application files into the container
+COPY . .
+
+RUN npm run build
+
+FROM node:22-alpine
+
+# Update and upgrade packages
+RUN apk update && apk upgrade && \
+    apk add --no-cache git \
+    libc6-compat \
+    libreoffice \
+    ttf-freefont \
+    font-noto \
+    tini
+
+# Create a fonts directory (optional but organized)
+RUN mkdir -p /usr/share/fonts/ghea
+
+# Copy all your GHEA fonts into the container
+COPY fonts/*.otf /usr/share/fonts/ghea/
+
+# Rebuild the font cache so LibreOffice can see them
+RUN fc-cache -fv
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the package.json and package-lock.json first to leverage Docker cache
+COPY ../package*.json ./
+
+RUN mkdir ~/.npm-global && npm config set cache ~/.npm-global && mkdir /app/src
+
+# Install the dependencies
+RUN npm install --include=dev
+
+COPY --from=build /app/build /app
+COPY /src/routes /app/src/routes
+COPY /locales /app/locales
+
+# Use tini as init process
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Command to start the application
+CMD ["node", "./index.js"]

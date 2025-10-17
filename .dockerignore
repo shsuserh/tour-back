@@ -1,0 +1,8 @@
+docker
+app_logs
+.env
+env
+server/env
+package-lock.json
+node_modules
+uploads

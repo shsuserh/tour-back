@@ -1,0 +1,13 @@
+{
+	"required_filed": "Заполнение поля обязательно",
+	"card_characters": "Введите 16 символов",
+	"ssn_characters": "Введите 10 символов",
+	"docNumber_characters": "Введите 9 символов",
+	"pin_characters": "Введите 12 символов",
+	"incorrect_format": "Неправильный формат",
+	"mismatch_data": "Данные не совпадают",
+	"format_error":"Неверный формат данных",
+	"unavailable_service": "В настоящее время сервис недоступен.",
+	"service_not_found": "Сервис не найден.",
+	"field_data":"Введённые данные неверны"
+}

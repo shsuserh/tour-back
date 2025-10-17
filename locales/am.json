@@ -1,0 +1,13 @@
+{
+	"required_filed": "Դաշտը լրացնելը պարտադիր է",
+	"card_characters": "Մուտքագրեք 16 նիշ",
+	"ssn_characters": "Մուտքագրեք 10 նիշ",
+	"docNumber_characters": "Մուտքագրեք 9 նիշ",
+	"pin_characters": "Մուտքագրեք 12 նիշ",
+	"incorrect_format": "Սխալ ձևաչափ",
+	"mismatch_data": "Տվյալների անհամապատասխանություն",
+	"format_error":"Տվյալների ձևաչափը սխալ է",
+	"unavailable_service": "Ծառայությունն այս պահին անհասանելի է",
+	"service_not_found": "Ծառայությունը գոյություն չունի",
+	"field_data":"Մուտքագրված տվյալները սխալ են"
+}

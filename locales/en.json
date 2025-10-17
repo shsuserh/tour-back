@@ -1,0 +1,13 @@
+{
+	"required_filed": "Filling in the field is required",
+	"card_characters": "Enter 16 characters",
+	"ssn_characters": "Enter 10 characters",
+	"docNumber_characters": "Enter 9 characters",
+	"pin_characters": "Enter 12 characters",
+	"incorrect_format": "Incorrect format",
+	"mismatch_data": "Data mismatch",
+	"format_error":"The data format is incorrect.",
+	"unavailable_service": "The service is currently unavailable.",
+	"service_not_found": "Service not found.",
+	"field_data":"The entered data is incorrect"
+}

@@ -1,0 +1,1 @@
+export const TOKEN_COUNT_PER_USER_PER_SESSION = 2;
