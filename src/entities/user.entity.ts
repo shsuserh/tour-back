@@ -1,6 +1,7 @@
 import { Entity, Column, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Token } from './token.entity';
+import { SocialAuth } from './socialAuth.entity';
 import { UserRole } from '../datatypes/enums/enums';
 
 @Entity('user')
@@ -8,11 +9,11 @@ export class User extends BaseEntity {
   @Column({ nullable: false, unique: true })
   username!: string;
 
-  @Column({ nullable: false })
-  hashedPassword!: string;
+  @Column({ nullable: true })
+  hashedPassword?: string;
 
-  @Column({ nullable: false })
-  salt!: string;
+  @Column({ nullable: true })
+  salt?: string;
 
   @Column({ nullable: true })
   email?: string;
@@ -40,4 +41,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Token, (token) => token.user)
   tokens!: Token[];
+
+  @OneToMany(() => SocialAuth, (socialAuth) => socialAuth.user)
+  socialAuths!: SocialAuth[];
 }

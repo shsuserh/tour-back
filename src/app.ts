@@ -1,11 +1,13 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
+import passport from 'passport';
 import errorHandler from './middlewares/errorHandler';
 import routes from './routes/routes';
 import corsOptions from './config/corsOptions';
 import swaggerDocs from './config/swagger';
 import i18n from 'i18n';
 import path from 'path';
+import { configurePassportStrategies } from './config/passport';
 
 async function initializeApp(): Promise<Application> {
   const app: Application = express();
@@ -49,6 +51,10 @@ async function initializeApp(): Promise<Application> {
 
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
+
+  // Configure Passport
+  configurePassportStrategies();
+  app.use(passport.initialize());
 
   app.use(cors(corsOptions));
   routes(app);

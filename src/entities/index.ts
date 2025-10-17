@@ -6,3 +6,4 @@ export * from './user.entity';
 export * from './tour.entity';
 export * from './tourFile.entity';
 export * from './tourTranslation.entity';
+export * from './socialAuth.entity';

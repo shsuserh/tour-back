@@ -9,7 +9,10 @@
     "start": "node build/index.js",
     "prepare": "husky",
     "test": "node tests/run-tests.js",
-    "test:complete": "node tests/auth/test-complete-auth-flow.js"
+    "test:complete": "node tests/auth/test-complete-auth-flow.js",
+    "test:social-auth": "node tests/social-auth/test-social-auth-comprehensive.js",
+    "migration:run": "npx typeorm-ts-node-commonjs migration:run --dataSource dataSource.ts",
+    "migration:generate": "npx typeorm-ts-node-commonjs migration:generate --dataSource dataSource.ts"
   },
   "author": "XAYPAY",
   "license": "ISC",
@@ -38,6 +41,7 @@
     "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
     "express": "^4.19.2",
+    "husky": "^9.1.5",
     "nodemon": "^3.1.0",
     "prettier": "^3.3.3",
     "rimraf": "^5.0.10",
@@ -46,10 +50,12 @@
     "tsx": "^4.10.5",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.5.0",
-    "uuid": "^9.0.1",
-    "husky": "^9.1.5"
+    "uuid": "^9.0.1"
   },
   "dependencies": {
+    "@types/passport-facebook": "^3.0.3",
+    "@types/passport-google-oauth20": "^2.0.16",
+    "@types/passport-instagram": "^1.0.5",
     "axios": "^1.7.9",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
@@ -67,6 +73,9 @@
     "multer": "^1.4.5-lts.1",
     "nanoid": "^5.0.7",
     "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-instagram": "^1.0.0",
     "passport-local": "^1.0.0",
     "pg": "^8.4.0",
     "pino": "^9.1.0",

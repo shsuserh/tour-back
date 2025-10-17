@@ -18,6 +18,10 @@ class UserRepository {
     return this.repository.findOne({ where: { username } });
   }
 
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.repository.findOne({ where: { email } });
+  }
+
   async updateUser(id: string, data: UserUpdatePayload, transactionalEntityManager?: EntityManager): Promise<void> {
     if (transactionalEntityManager) await transactionalEntityManager.update(User, { id }, data);
     else await this.repository.update(id, data);

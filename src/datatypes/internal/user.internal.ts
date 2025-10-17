@@ -36,4 +36,13 @@ export type UserUpdatePayload = {
   image: string;
 };
 
-export type CreateUserPayload = { username: string; password: string; hashedPassword?: string; salt?: string };
+export type CreateUserPayload = {
+  username: string;
+  password?: string;
+  hashedPassword?: string;
+  salt?: string;
+  email?: string;
+  name?: string;
+  lastname?: string;
+  image?: string;
+};

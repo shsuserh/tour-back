@@ -24,6 +24,22 @@ export const env = {
   JWT_ACCESS_TOKEN_EXPIRES_IN: requireEnv('JWT_ACCESS_TOKEN_EXPIRES_IN'),
   JWT_REFRESH_TOKEN_KEY: requireEnv('JWT_REFRESH_TOKEN_KEY'),
   JWT_REFRESH_TOKEN_EXPIRES_IN: requireEnv('JWT_REFRESH_TOKEN_EXPIRES_IN'),
+
+  // Social Authentication
+  BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:3030',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+
+  // Facebook OAuth
+  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || '',
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || '',
+
+  // Instagram OAuth
+  INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID || '',
+  INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET || '',
 };
 
 export type Env = typeof env;

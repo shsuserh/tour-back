@@ -1,13 +1,10 @@
-
-
 const whitelist = [
-  'http://127.0.0.1',
-  'http://localhost:3030',
-  'http://localhost:3000',
-  'https://dev-eservice-api.yerevan.am',
-  'https://dev-eservice.yerevan.am',
-  'https://eservice-api.yerevan.am',
-  'https://eservice.yerevan.am',
+  process.env.BACKEND_URL || 'http://localhost:3030',
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.DEV_API_URL || 'https://dev-eservice-api.yerevan.am',
+  process.env.DEV_FRONTEND_URL || 'https://dev-eservice.yerevan.am',
+  process.env.PROD_API_URL || 'https://eservice-api.yerevan.am',
+  process.env.PROD_FRONTEND_URL || 'https://eservice.yerevan.am',
 ];
 
 const corsOptions = {

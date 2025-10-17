@@ -9,10 +9,20 @@ import crypto from 'crypto';
 
 class UserService {
   async createUser(userPayload: CreateUserPayload): Promise<void> {
+    // If password is not provided (social auth user), skip password hashing
+    if (!userPayload.password) {
+      const transactionManager = new TransactionManager();
+      await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
+        await userRepository.createUser(userPayload, transactionalEntityManager);
+      });
+      return;
+    }
+
     const salt = crypto.randomBytes(16);
+    const password = userPayload.password; // Extract password for type safety
 
     return new Promise((resolve, reject) => {
-      crypto.pbkdf2(userPayload.password, salt, 310000, 32, 'sha256', async (err, hashedPassword) => {
+      crypto.pbkdf2(password, salt, 310000, 32, 'sha256', async (err, hashedPassword) => {
         if (err) {
           reject(
             new AppError({

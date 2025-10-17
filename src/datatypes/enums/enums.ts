@@ -45,3 +45,7 @@ export enum DesItemType {
   trash = 5,
   garage = 6,
 }
+
+export enum SocialProvider {
+  GOOGLE = 'google',
+}

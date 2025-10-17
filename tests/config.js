@@ -1,12 +1,12 @@
 // Test Configuration
 const config = {
     // Base URL for the API
-    baseUrl: 'http://localhost:3030',
+    baseUrl: process.env.BACKEND_URL || 'http://localhost:3030',
 
     // Test user credentials
     testUser: {
         username: 'testuser',
-        password: 'testpassword123',
+        password: process.env.TEST_USER_PASSWORD || 'testpassword123',
         email: 'test@example.com',
         name: 'Test',
         lastname: 'User'

@@ -39,7 +39,7 @@ export const PAGINATION_DEFAULT_PARAMS = {
 
 export const MULTER_FILE_LIMIT_ERROR_CODE = 'LIMIT_FILE_SIZE';
 export const AUTH_TOKEN_PREFIX = `Bearer`;
-export const LOCAL_REFERER_URL = `http://localhost`;
+export const LOCAL_REFERER_URL = process.env.BACKEND_URL || 'http://localhost:3030';
 
 export const EMAIL_VALIDATION_REGEXP = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 export const PHONE_DIGIT_VALIDATION_REGEXP = /^[0-9]+$/;

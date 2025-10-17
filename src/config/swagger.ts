@@ -33,7 +33,7 @@ function swaggerDocs(app: Application, port: string | number) {
     res.send(swaggerSpec);
   });
 
-  console.info(`Docs available at http://localhost:${port}/api/docs`);
+  console.info(`Docs available at ${process.env.BACKEND_URL || 'http://localhost'}:${port}/api/docs`);
 }
 
 export default swaggerDocs;

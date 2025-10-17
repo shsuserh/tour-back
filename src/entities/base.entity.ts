@@ -4,9 +4,9 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created' })
   created!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated' })
   updated?: Date;
 }

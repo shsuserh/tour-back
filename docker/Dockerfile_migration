@@ -8,10 +8,11 @@ RUN mkdir ~/.npm-global && npm config set cache ~/.npm-global
 
 # Copy only the files needed for migrations
 COPY ../package.json ./
-# COPY ../tsconfig.json ./
+COPY ../tsconfig.json ./
 COPY ../src/migrations/ ./migrations/
+COPY ../src/entities/ ./src/entities/
+COPY ../src/datatypes/ ./src/datatypes/
 COPY ../dataSource.ts ./
-# COPY ../src/entities ./
 
 RUN npm install
 
