@@ -32,9 +32,22 @@ export enum ServiceAvailabilityLevel {
   both = 3,
 }
 
-export enum TourDurationType {
-  hour = 1,
-  day = 2,
+export enum TourType {
+  day = 'day',
+  city = 'city',
+  multi = 'multi',
+  abroad = 'abroad',
+}
+
+export enum TourTranslationField {
+  title = 'title',
+  region = 'region',
+  overview = 'overview',
+  meeting = 'meeting',
+  goodToKnow = 'goodToKnow',
+  highlights = 'highlights',
+  included = 'included',
+  excluded = 'excluded',
 }
 
 export enum DesItemType {

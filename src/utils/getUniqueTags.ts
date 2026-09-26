@@ -1,4 +1,4 @@
-import { Tag } from '../datatypes/internal/template.internal';
+export type Tag = { id: string; name: string; key: string };
 
 export function getUniqueTags(tags: Tag[]): Tag[] {
   const seen = new Set();

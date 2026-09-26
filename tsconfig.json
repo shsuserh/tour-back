@@ -95,6 +95,6 @@
   "exclude": [
     "**/*.spec.ts", // Exclude test files if any
     "node_modules",
-    "dataSource.ts" // Explicitly exclude this file
+    "dataSource.ts" // Exclude root dataSource file
   ]
 }

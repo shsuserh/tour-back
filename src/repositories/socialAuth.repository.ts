@@ -1,7 +1,7 @@
 import { EntityManager, Repository } from 'typeorm';
 import { SocialAuth } from '../entities/socialAuth.entity';
 import { SocialProvider } from '../datatypes/enums/enums';
-import { AppDataSource } from '../../dataSource';
+import { AppDataSource } from '../config/dataSource';
 
 class SocialAuthRepository {
   private repository: Repository<SocialAuth>;

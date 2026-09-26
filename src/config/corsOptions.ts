@@ -1,6 +1,7 @@
 const whitelist = [
   process.env.BACKEND_URL || 'http://localhost:3030',
   process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.SITE_URL || 'http://localhost:5173', // public site (tour-react)
   process.env.DEV_API_URL || 'https://dev-eservice-api.yerevan.am',
   process.env.DEV_FRONTEND_URL || 'https://dev-eservice.yerevan.am',
   process.env.PROD_API_URL || 'https://eservice-api.yerevan.am',

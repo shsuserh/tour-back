@@ -1,178 +1,197 @@
 import { Exclude, Expose, Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
+  ArrayUnique,
   IsArray,
   IsBoolean,
+  IsEnum,
+  IsIn,
+  IsInt,
   IsNotEmpty,
-  IsObject,
+  IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
-  IsUrl,
   IsUUID,
   Matches,
+  Validate,
   ValidateIf,
   ValidateNested,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
-import { LanguagesDto, TranslationDto } from './common.dto';
 import { IsUniqueWithAmNameCheck } from '../../../decorators/isUniqueWithAmNameCheck.decorator';
 import { VALIDATION_ERROR_MESSAGES } from '../../../constants/common.constants';
 import { IsCodeValid } from '../../../decorators/IsCodeValid.decorator';
-import { MULBERRY_TRACKING_ID_REGEXP } from '../../../constants/mulberry.constants';
+import { LanguageCode, TourTranslationField, TourType } from '../../enums/enums';
+import { TOUR_LIST_FIELDS } from '../../../constants/tour.constants';
 
 @Exclude()
-export class CesStatusUpdateRequestDto {
+export class TourStatusUpdateRequestDto {
   @Expose()
   @IsBoolean()
   isActive!: boolean;
 }
-@Exclude()
-export class UseFullLinksDto extends LanguagesDto {
-  @Expose()
-  @IsOptional()
-  @IsUUID()
-  id?: string;
 
-  @Expose()
-  @IsUrl({}, { message: VALIDATION_ERROR_MESSAGES.validateField })
-  link!: string;
+// List fields (highlights, included, excluded) take string[], the rest take a string.
+@ValidatorConstraint()
+class TourTranslationValue implements ValidatorConstraintInterface {
+  validate(value: unknown, args: ValidationArguments): boolean {
+    const nonEmpty = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
+    return TOUR_LIST_FIELDS.includes(args.object['field'])
+      ? Array.isArray(value) && value.every(nonEmpty)
+      : nonEmpty(value);
+  }
 }
-@Exclude()
-export class DocsListDto extends LanguagesDto {
-  @Expose()
-  @IsOptional()
-  @IsUUID()
-  id?: string;
 
-  @Expose()
-  @IsBoolean()
-  isRequired?: boolean;
+@ValidatorConstraint()
+class OnlyOneDuration implements ValidatorConstraintInterface {
+  validate(_: unknown, args: ValidationArguments): boolean {
+    return args.object['durationHours'] == null;
+  }
 }
 
 @Exclude()
-export class UseFulFileDto extends LanguagesDto {
+export class TourTranslationDto {
   @Expose()
-  @IsOptional()
-  @IsUUID()
-  id?: string;
+  @IsEnum(LanguageCode, { message: VALIDATION_ERROR_MESSAGES.validateLanguage })
+  lgCode!: LanguageCode;
 
   @Expose()
-  @IsString({ message: VALIDATION_ERROR_MESSAGES.validateFileType })
-  @IsUUID('all', { message: VALIDATION_ERROR_MESSAGES.validateField })
-  fileId!: string;
+  @IsEnum(TourTranslationField, { message: VALIDATION_ERROR_MESSAGES.validateField })
+  field!: TourTranslationField;
+
+  @Expose()
+  @Validate(TourTranslationValue, { message: VALIDATION_ERROR_MESSAGES.validateField })
+  value!: string | string[];
 }
+
+// English is required because the site falls back to it when a language is missing.
+@Exclude()
+export class ItineraryTextDto {
+  @Expose()
+  @IsString({ message: VALIDATION_ERROR_MESSAGES.validateField })
+  @IsNotEmpty({ message: VALIDATION_ERROR_MESSAGES.requiredField })
+  en!: string;
+
+  @Expose()
+  @IsOptional()
+  @IsString({ message: VALIDATION_ERROR_MESSAGES.validateField })
+  am?: string;
+
+  @Expose()
+  @IsOptional()
+  @IsString({ message: VALIDATION_ERROR_MESSAGES.validateField })
+  ru?: string;
+}
+
+@Exclude()
+export class TourItineraryStepDto {
+  @Expose()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: VALIDATION_ERROR_MESSAGES.validateField })
+  time!: string;
+
+  @Expose()
+  @ValidateNested()
+  @Type(() => ItineraryTextDto)
+  title!: ItineraryTextDto;
+
+  @Expose()
+  @ValidateNested()
+  @Type(() => ItineraryTextDto)
+  text!: ItineraryTextDto;
+}
+
 @Exclude()
 export class TourRequestDto {
-
-
   @Expose()
   @IsOptional()
-  @ValidateIf((obj) => obj.imageId !== null)
-  @IsString({ message: VALIDATION_ERROR_MESSAGES.validateFileType })
-  @IsUUID()
-  imageId?: string | null;
-
-  @Expose()
   @IsBoolean()
-  @IsOptional()
   isActive?: boolean;
 
+  @Expose()
+  @Matches(/^[a-z0-9]+(-[a-z0-9]+)*$/, { message: VALIDATION_ERROR_MESSAGES.validateField })
+  slug!: string;
 
+  @Expose()
+  @IsEnum(TourType, { message: VALIDATION_ERROR_MESSAGES.validateField })
+  type!: TourType;
+
+  @Expose()
+  @IsString()
+  @IsNotEmpty({ message: VALIDATION_ERROR_MESSAGES.requiredField })
+  region!: string;
+
+  // Exactly one of durationHours / durationDays: hours is required unless days is given,
+  // and days is rejected when hours is also given.
+  @Expose()
+  @ValidateIf((obj) => obj.durationHours != null || obj.durationDays == null)
+  @IsInt({ message: VALIDATION_ERROR_MESSAGES.requiredField })
+  @IsPositive()
+  durationHours?: number | null;
+
+  @Expose()
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  @Validate(OnlyOneDuration, { message: VALIDATION_ERROR_MESSAGES.validateField })
+  durationDays?: number | null;
+
+  @Expose()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  price!: number;
+
+  @Expose()
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  privatePrice?: number | null;
+
+  @Expose()
+  @IsOptional()
+  @IsBoolean()
+  privateOnly?: boolean;
+
+  @Expose()
+  @IsInt()
+  @IsPositive()
+  maxGroup!: number;
+
+  @Expose()
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayUnique()
+  @IsIn(Object.values(LanguageCode), { each: true, message: VALIDATION_ERROR_MESSAGES.validateLanguage })
+  languages!: LanguageCode[];
+
+  @Expose()
+  @IsOptional()
+  @IsBoolean()
+  popular?: boolean;
+
+  // Ordered gallery; the first image is the cover.
+  @Expose()
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('all', { each: true, message: VALIDATION_ERROR_MESSAGES.validateField })
+  imageIds?: string[];
+
+  @Expose()
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TourItineraryStepDto)
+  itinerary?: TourItineraryStepDto[];
 
   @Expose()
   @IsArray()
   @ArrayNotEmpty({ message: VALIDATION_ERROR_MESSAGES.validateField })
   @ValidateNested({ each: true })
-  @Type(() => TranslationDto)
+  @Type(() => TourTranslationDto)
   @IsUniqueWithAmNameCheck({ message: VALIDATION_ERROR_MESSAGES.validateField })
-  @IsCodeValid({ message: VALIDATION_ERROR_MESSAGES.validateLanguage })
-  translations!: TranslationDto[];
-
-
-
-
-}
-
-@Exclude()
-export class CesSubmitDocumentDetailsDto {
-  @Expose()
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  lastname?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  ssn?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  email?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  address!: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  tin?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  companyName?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  companyType?: string;
-}
-
-@Exclude()
-export class CesSubmitDocumentJsonDataDto {
-  @Expose()
-  @IsOptional()
-  @IsObject()
-  details?: CesSubmitDocumentDetailsDto;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  yid?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  uid?: string;
-}
-
-@Exclude()
-export class CesSubmitDocumentDto {
-  @Expose()
-  @IsNotEmpty()
-  @Type(() => CesSubmitDocumentJsonDataDto)
-  jsonData!: CesSubmitDocumentJsonDataDto;
-}
-
-@Exclude()
-export class TrackApplicationDto {
-  @Expose()
-  @Matches(MULBERRY_TRACKING_ID_REGEXP, {
-    message: 'trackingId must be in the format XXXX-XXXX-XXXX-XXXX (e.g. F893-8C9D-1B2D-7D8F)',
-  })
-  @IsString({ message: 'trackingId must be a string' })
-  @IsNotEmpty({ message: 'trackingId is required' })
-  trackingId!: string;
+  @IsCodeValid(TourTranslationField.title, { message: VALIDATION_ERROR_MESSAGES.validateLanguage })
+  translations!: TourTranslationDto[];
 }

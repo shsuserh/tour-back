@@ -4,5 +4,5 @@ import { Tour } from './tour.entity';
 @Entity('tourTranslation')
 export class TourTranslation extends TranslationEntity {
   @ManyToOne(() => Tour, (tour) => tour.translations, { nullable: false, onDelete: 'CASCADE' })
-  tour!: string;
+  tour!: Tour;
 }

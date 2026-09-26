@@ -6,9 +6,7 @@ import { CreateUserPayload, UserUpdatePayload } from '../datatypes/internal/user
 class UserRepository {
   private repository: Repository<User> = AppDataSource.getRepository(User);
 
-  async getUserByYid(_yid: string): Promise<User | null> {
-    return null; //this.repository.findOne({ where: { yid } });
-  }
+  // Removed YID-based lookup
 
   async getUserById(id: string): Promise<User | null> {
     return this.repository.findOne({ where: { id } });

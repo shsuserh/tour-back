@@ -25,8 +25,7 @@ class TokenRepository {
   }
 
   async revokeToken(token: Token, transactionalEntityManager?: EntityManager): Promise<void> {
-    if (transactionalEntityManager)
-      await transactionalEntityManager.update(Token, { id: token.id }, { ...token, revoked: true });
+    if (transactionalEntityManager) await transactionalEntityManager.update(Token, { id: token.id }, { revoked: true });
     else await this.repository.update(token.id, { revoked: true });
   }
 

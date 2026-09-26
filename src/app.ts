@@ -60,7 +60,8 @@ async function initializeApp(): Promise<Application> {
   routes(app);
   swaggerDocs(app, parseInt(process.env.PORT || '3000', 10));
 
-  app.all('*', (req: Request, res: Response) => {
+  // Express 5: replace wildcard route with catch-all middleware
+  app.use((req: Request, res: Response) => {
     res.status(404).json({ error: 'Route not found' });
   });
 

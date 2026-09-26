@@ -6,7 +6,7 @@ import { AppError, ERROR_TYPES } from '../errors';
 
 import { Tour } from '../entities/tour.entity';
 import { AppDataSource } from '../config/dataSource';
-import { CES_MESSAGES } from '../constants/tour.constants';
+import { TOUR_MESSAGES } from '../constants/tour.constants';
 import { TourFile } from '../entities/tourFile.entity';
 import { PaginationPayload } from '../datatypes/internal/common';
 import { PAGINATION_DEFAULT_PARAMS } from '../constants/common.constants';
@@ -17,89 +17,81 @@ import { removeFilesFromUploadFolder } from '../utils/removeFileFromUploadFolder
 import { TourTranslation } from '../entities/tourTranslation.entity';
 import { updateTranslations } from '../utils/updateTranslation';
 
+// List values are stored as a JSON array string in the translation `value` column.
+const toTranslationRows = (translations: TourRequestDto['translations']) =>
+  translations.map(({ lgCode, field, value }) => ({
+    lgCode,
+    field,
+    value: Array.isArray(value) ? JSON.stringify(value) : value,
+  }));
+
+// Plain tour columns from the request; relations are handled separately.
+const toTourColumns = (dto: TourRequestDto): Partial<Tour> => ({
+  slug: dto.slug,
+  type: dto.type,
+  region: dto.region,
+  durationHours: dto.durationHours ?? null,
+  durationDays: dto.durationDays ?? null,
+  price: dto.price,
+  privatePrice: dto.privatePrice ?? null,
+  privateOnly: dto.privateOnly ?? false,
+  maxGroup: dto.maxGroup,
+  languages: dto.languages,
+  popular: dto.popular ?? false,
+  itinerary: (dto.itinerary ?? []).map(({ time, title, text }) => ({ time, title: { ...title }, text: { ...text } })),
+});
+
 export class TourService {
   private repository: Repository<Tour> = AppDataSource.getRepository(Tour);
 
-  private async getEntityOrThrow(repository, entityId: string, errorMessage: string) {
-    const entity = await repository.getById(entityId);
-    if (!entity) {
+  private async assertSlugIsFree(slug: string, tourId?: string): Promise<void> {
+    const existing = await this.repository.findOne({ where: { slug }, select: ['id'] });
+    if (existing && existing.id !== tourId) {
       throw new AppError({
-        code: ERROR_TYPES.notFoundError,
+        code: ERROR_TYPES.badRequestError,
         toaster: true,
-        toasterErrors: [errorMessage],
+        errors: [TOUR_MESSAGES.slugTakenErrorMessage],
+        toasterErrors: [TOUR_MESSAGES.slugTakenErrorMessage],
       });
     }
-    return entity;
   }
 
-  private async updateCesImageRelation(
-    existingCes: Tour,
-    imageId: string | null | undefined,
+  // Makes the tour's gallery match `imageIds` (in order). Returns file paths to delete after commit.
+  private async syncTourImages(
+    tour: Tour,
+    imageIds: string[],
     transactionalEntityManager: EntityManager
-  ) {
-    let fileNameTobeRemove = '';
-    if (existingCes.image && existingCes.image.id === imageId) {
-      return;
+  ): Promise<string[]> {
+    const existing = tour.images ?? [];
+    const existingIds = new Set(existing.map((image) => image.id));
+    const removed = existing.filter((image) => !imageIds.includes(image.id));
+    const newIds = imageIds.filter((id) => !existingIds.has(id));
+
+    if (removed.length) await transactionalEntityManager.remove(removed);
+    // saveModuleFiles keeps the temp file id, so new images end up with the ids from imageIds.
+    if (newIds.length) await fileService.saveModuleFiles(TourFile, newIds, tour.id, transactionalEntityManager, 'tour');
+    for (const [sortOrder, id] of imageIds.entries()) {
+      await transactionalEntityManager.update(TourFile, id, { sortOrder });
     }
-    if (!imageId && existingCes.image) {
-      fileNameTobeRemove = existingCes.image.filePath;
-      existingCes.image = (await fileService.removeModuleFileRelation(
-        existingCes,
-        'image',
-        transactionalEntityManager
-      )) as unknown as TourFile;
-      return fileNameTobeRemove;
-    }
-    if (!existingCes.image && imageId) {
-      existingCes.image = (await fileService.saveModuleFiles(
-        TourFile,
-        [imageId],
-        existingCes.id,
-        transactionalEntityManager,
-        'tour'
-      )) as unknown as TourFile;
-    }
-    if (existingCes.image && existingCes.image.id !== imageId) {
-      fileNameTobeRemove = existingCes.image.filePath;
-      existingCes.image = (await fileService.updateModuleFileRelation(
-        existingCes,
-        'image',
-        TourFile,
-        [imageId!],
-        existingCes.id,
-        transactionalEntityManager,
-        'tour'
-      )) as unknown as TourFile;
-      return fileNameTobeRemove;
-    }
+
+    return removed.map((image) => image.filePath);
   }
 
-  private async findEntityById<T>(
-    repository: { getById: (id: string) => Promise<T | null> },
-    id: string,
-    errorMessage: string
-  ): Promise<T> {
-    const entity = await repository.getById(id);
-    if (!entity) {
-      throw new AppError({
-        code: ERROR_TYPES.notFoundError,
-        toaster: true,
-        toasterErrors: [errorMessage],
-      });
-    }
-    return entity;
-  }
-
-  async processCesCreation(tourRequestDto: TourRequestDto): Promise<void> {
-    const { imageId } = tourRequestDto;
+  async processTourCreation(tourRequestDto: TourRequestDto): Promise<void> {
+    await this.assertSlugIsFree(tourRequestDto.slug);
 
     const transactionManager = new TransactionManager();
     await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
-      const tour = await tourRepository.createTour(tourRequestDto, transactionalEntityManager);
+      const tour = await tourRepository.createTour(
+        {
+          ...toTourColumns(tourRequestDto),
+          isActive: tourRequestDto.isActive ?? false,
+          translations: toTranslationRows(tourRequestDto.translations) as TourTranslation[],
+        },
+        transactionalEntityManager
+      );
 
-      if (imageId) {
-        await fileService.saveModuleFiles(TourFile, [imageId], tour.id, transactionalEntityManager, 'tour');
-      }
+      await this.syncTourImages(tour, tourRequestDto.imageIds ?? [], transactionalEntityManager);
     });
   }
 
@@ -114,97 +106,86 @@ export class TourService {
     return tourRepository.getById(id);
   }
 
+  async getActiveTours(): Promise<Tour[]> {
+    return tourRepository.getActiveTours();
+  }
+
+  async getActiveTourBySlug(slug: string): Promise<Tour> {
+    const tour = await tourRepository.getActiveTourBySlug(slug);
+    if (!tour) {
+      throw new AppError({
+        code: ERROR_TYPES.notFoundError,
+        toaster: true,
+        toasterErrors: [TOUR_MESSAGES.notFoundErrorMessage],
+      });
+    }
+    return tour;
+  }
+
   async processTourUpdate(id: string, updateTourPayload: TourRequestDto): Promise<void> {
     const existingTour = await tourRepository.getById(id);
     if (!existingTour)
-      throw new AppError({ code: ERROR_TYPES.notFoundError, errors: [CES_MESSAGES.notFoundErrorMessage] });
+      throw new AppError({ code: ERROR_TYPES.notFoundError, errors: [TOUR_MESSAGES.notFoundErrorMessage] });
 
-    const { isActive, translations, imageId } = updateTourPayload;
+    await this.assertSlugIsFree(updateTourPayload.slug, id);
 
     const filesToBeDeleted: string[] = [];
     const transactionManager = new TransactionManager();
     return transactionManager.runInTransaction(
       async (transactionalEntityManager: EntityManager) => {
-        await updateTranslations(existingTour, Tour, translations, transactionalEntityManager, TourTranslation);
+        await updateTranslations(
+          existingTour,
+          Tour,
+          toTranslationRows(updateTourPayload.translations),
+          transactionalEntityManager,
+          TourTranslation
+        );
 
-        const removeImage = await this.updateCesImageRelation(existingTour, imageId, transactionalEntityManager);
-
-        if (removeImage) {
-          filesToBeDeleted.push(removeImage);
+        if (updateTourPayload.imageIds) {
+          filesToBeDeleted.push(
+            ...(await this.syncTourImages(existingTour, updateTourPayload.imageIds, transactionalEntityManager))
+          );
         }
 
-        existingTour.isActive = isActive ?? existingTour.isActive;
+        Object.assign(existingTour, toTourColumns(updateTourPayload));
+        existingTour.isActive = updateTourPayload.isActive ?? existingTour.isActive;
+        // Images were synced above; a stale array here would make TypeORM detach the new ones.
+        delete (existingTour as Partial<Tour>).images;
 
-        await tourRepository.updateTour(id, existingTour, transactionalEntityManager);
+        await tourRepository.updateTour(existingTour, transactionalEntityManager);
       },
       removeFilesFromUploadFolder,
       filesToBeDeleted
     );
   }
 
-  async updateCesStatus(id: string, isActive: boolean): Promise<UpdateResult> {
+  async updateTourStatus(id: string, isActive: boolean): Promise<UpdateResult> {
     const tour = await this.repository.update(id, { isActive });
 
     if (tour && tour.affected === 0) {
       throw new AppError({
         code: ERROR_TYPES.notFoundError,
         toaster: true,
-        toasterErrors: [CES_MESSAGES.notFoundUpdateErrorMessage],
+        toasterErrors: [TOUR_MESSAGES.notFoundUpdateErrorMessage],
       });
     }
 
     return tour;
   }
 
-  async deleteCes(id: string): Promise<void> {
+  async deleteTour(id: string): Promise<void> {
     const tour = await tourRepository.getById(id);
     if (!tour) {
       throw new AppError({
         code: ERROR_TYPES.notFoundError,
         toaster: true,
-        toasterErrors: [CES_MESSAGES.notFoundErrorMessage],
+        toasterErrors: [TOUR_MESSAGES.notFoundErrorMessage],
       });
     }
     const transactionManager = new TransactionManager();
     await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
       await tourRepository.deleteTour(tour, transactionalEntityManager);
     });
-  }
-
-  async getTourInfo(id: string, lgCode: string): Promise<{ tour: Tour | null }> {
-    const tour = await tourRepository.getById(id);
-
-    if (!tour) {
-      throw new AppError({
-        code: ERROR_TYPES.notFoundError,
-        toaster: true,
-        toasterErrors: [CES_MESSAGES.notFoundErrorMessage],
-      });
-    }
-
-    if (!tour.isActive) {
-      throw new AppError({
-        code: ERROR_TYPES.notFoundError,
-        toaster: true,
-        toasterErrors: [CES_MESSAGES.notFoundErrorMessage],
-      });
-    }
-
-    const tourInfo = await tourRepository.getTourInfo(id, lgCode);
-
-    return { tour: tourInfo };
-  }
-
-  async getCesParentPath(id: string): Promise<{ tour: Tour }> {
-    const tour = await tourRepository.getById(id);
-    if (!tour) {
-      throw new AppError({
-        code: ERROR_TYPES.notFoundError,
-        toaster: true,
-        toasterErrors: [CES_MESSAGES.notFoundErrorMessage],
-      });
-    }
-    return { tour };
   }
 }
 const tourService = new TourService();
