@@ -46,6 +46,13 @@ services:
       # Social Authentication
       BACKEND_URL: ${BACKEND_URL:-http://localhost:3030}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      SITE_URL: ${SITE_URL:-http://localhost:5173}
+      # Mail goes to the local Mailpit inbox (http://localhost:8025) unless docker/.env sets a real SMTP server.
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
@@ -83,6 +90,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    restart: always
+    networks:
+      - net
+
+  # Development mail catcher: accepts all SMTP mail, shows it at http://localhost:8025, delivers nothing.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - '127.0.0.1:8025:8025'
     restart: always
     networks:
       - net

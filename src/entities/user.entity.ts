@@ -36,6 +36,13 @@ export class User extends BaseEntity {
   @Column({ type: 'int', nullable: true })
   age?: number | null;
 
+  // sha256 of the emailed reset token; the token itself is never stored.
+  @Column({ type: 'varchar', nullable: true })
+  passwordResetTokenHash?: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  passwordResetExpires?: Date | null;
+
   @Column({ nullable: true })
   image?: string;
 

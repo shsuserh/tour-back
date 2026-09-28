@@ -6,6 +6,8 @@ import {
   AccountLoginRequestDto,
   AccountRegisterRequestDto,
   AccountUpdateRequestDto,
+  ForgotPasswordRequestDto,
+  ResetPasswordRequestDto,
 } from '../datatypes/dtos/request/account.request.dto';
 
 export class AccountController {
@@ -17,6 +19,17 @@ export class AccountController {
   async login(req: Request, res: Response): Promise<Response> {
     const dto = await validateAndExtractDto(AccountLoginRequestDto, req.body);
     return res.status(200).json(await accountService.login(dto, req.headers['user-agent']!));
+  }
+
+  async forgotPassword(req: Request, res: Response): Promise<Response> {
+    const dto = await validateAndExtractDto(ForgotPasswordRequestDto, req.body);
+    await accountService.forgotPassword(dto);
+    return res.status(204).end();
+  }
+
+  async resetPassword(req: Request, res: Response): Promise<Response> {
+    const dto = await validateAndExtractDto(ResetPasswordRequestDto, req.body);
+    return res.status(200).json(await accountService.resetPassword(dto, req.headers['user-agent']!));
   }
 
   async getMe(req: RequestWithUser, res: Response): Promise<Response> {

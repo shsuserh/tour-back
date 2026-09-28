@@ -6,52 +6,36 @@ import { User } from '../entities/user.entity';
 import { AppError, ERROR_TYPES } from '../errors';
 import { USER_ERROR_MESSAGES } from '../constants/user.constants';
 import crypto from 'crypto';
+import { promisify } from 'util';
+
+const pbkdf2 = promisify(crypto.pbkdf2);
 
 class UserService {
-  async createUser(userPayload: CreateUserPayload): Promise<User> {
-    // If password is not provided (social auth user), skip password hashing
-    if (!userPayload.password) {
-      const transactionManager = new TransactionManager();
-      let user!: User;
-      await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
-        user = await userRepository.createUser(userPayload, transactionalEntityManager);
-      });
-      return user;
-    }
-
+  // PBKDF2-SHA256, 310000 iterations — must match authService.verifyPassword.
+  async hashPassword(password: string): Promise<{ hashedPassword: string; salt: string }> {
     const salt = crypto.randomBytes(16);
-    const password = userPayload.password; // Extract password for type safety
-
-    return new Promise((resolve, reject) => {
-      crypto.pbkdf2(password, salt, 310000, 32, 'sha256', async (err, hashedPassword) => {
-        if (err) {
-          reject(
-            new AppError({
-              code: ERROR_TYPES.badRequestError,
-              toaster: true,
-              toasterErrors: ['Technical error occurred while creating user'],
-            })
-          );
-          return;
-        }
-
-        try {
-          userPayload.hashedPassword = hashedPassword.toString('hex');
-          userPayload.salt = salt.toString('hex');
-
-          const transactionManager = new TransactionManager();
-
-          let user!: User;
-          await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
-            user = await userRepository.createUser(userPayload, transactionalEntityManager);
-          });
-
-          resolve(user);
-        } catch (error) {
-          reject(error);
-        }
+    try {
+      const hashedPassword = await pbkdf2(password, salt, 310000, 32, 'sha256');
+      return { hashedPassword: hashedPassword.toString('hex'), salt: salt.toString('hex') };
+    } catch {
+      throw new AppError({
+        code: ERROR_TYPES.badRequestError,
+        toaster: true,
+        toasterErrors: ['Technical error occurred while creating user'],
       });
+    }
+  }
+
+  async createUser(userPayload: CreateUserPayload): Promise<User> {
+    // Social auth users have no password.
+    if (userPayload.password) Object.assign(userPayload, await this.hashPassword(userPayload.password));
+
+    let user!: User;
+    const transactionManager = new TransactionManager();
+    await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
+      user = await userRepository.createUser(userPayload, transactionalEntityManager);
     });
+    return user;
   }
 
   async getUsers(): Promise<User[]> {

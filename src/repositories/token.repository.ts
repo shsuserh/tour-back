@@ -29,6 +29,17 @@ class TokenRepository {
     else await this.repository.update(token.id, { revoked: true });
   }
 
+  // Signs the user out everywhere (e.g. after a password reset).
+  async revokeAllForUser(userId: string, transactionalEntityManager?: EntityManager): Promise<void> {
+    const manager = transactionalEntityManager || this.repository.manager;
+    await manager
+      .createQueryBuilder()
+      .update(Token)
+      .set({ revoked: true })
+      .where('"userId" = :userId AND revoked = false', { userId })
+      .execute();
+  }
+
   async getActiveTokensBySessionAndUserId(session: string, userId: string): Promise<Token[]> {
     return this.repository
       .createQueryBuilder('token')

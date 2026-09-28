@@ -63,6 +63,41 @@ function accountRouter(app: Application) {
    *     responses:
    *       200: { description: AccountSession }
    *       401: { description: Incorrect email or password }
+   * /auth/forgot-password:
+   *   post:
+   *     tags: [Account]
+   *     summary: Email a password reset link (same response whether or not the email is registered)
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email]
+   *             properties:
+   *               email: { type: string }
+   *               resetUrl: { type: string, description: "Site page for the link, e.g. https://site/en/reset-password" }
+   *               lang: { type: string, enum: [hy, en, ru] }
+   *     responses:
+   *       204: { description: Accepted }
+   *       400: { description: Validation error }
+   * /auth/reset-password:
+   *   post:
+   *     tags: [Account]
+   *     summary: Set a new password with the emailed token; signs out other sessions and signs in
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [token, password]
+   *             properties:
+   *               token: { type: string }
+   *               password: { type: string, minLength: 8 }
+   *     responses:
+   *       200: { description: AccountSession }
+   *       400: { description: Invalid or expired link, or validation error }
    * /me:
    *   get:
    *     tags: [Account]
@@ -92,6 +127,8 @@ function accountRouter(app: Application) {
    */
   app.post('/auth/register', asyncMiddlewareWrapper(accountController.register));
   app.post('/auth/login', asyncMiddlewareWrapper(accountController.login));
+  app.post('/auth/forgot-password', asyncMiddlewareWrapper(accountController.forgotPassword));
+  app.post('/auth/reset-password', asyncMiddlewareWrapper(accountController.resetPassword));
   app.get('/me', asyncMiddlewareWrapper(requireToBeAuthenticated), asyncMiddlewareWrapper(accountController.getMe));
   app.patch(
     '/me',

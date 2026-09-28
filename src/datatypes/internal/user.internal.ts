@@ -36,6 +36,13 @@ export type UserUpdatePayload = {
   image: string;
 };
 
+export type PasswordUpdatePayload = {
+  hashedPassword?: string;
+  salt?: string;
+  passwordResetTokenHash: string | null;
+  passwordResetExpires: Date | null;
+};
+
 // Profile fields the public site can edit (PATCH /me).
 export type AccountUpdatePayload = Partial<{
   name: string;

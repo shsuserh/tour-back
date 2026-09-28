@@ -29,6 +29,16 @@ export const env = {
   BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:3030',
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
 
+  // Public site (tour-react): password reset links point here unless the request names another allowed origin
+  SITE_URL: process.env.SITE_URL || 'http://localhost:5173',
+
+  // Outgoing mail. Without SMTP_HOST, emails are written to the log instead of sent (local development).
+  SMTP_HOST: process.env.SMTP_HOST || '',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  MAIL_FROM: process.env.MAIL_FROM || 'Arev Travel <no-reply@localhost>',
+
   // Google OAuth
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
