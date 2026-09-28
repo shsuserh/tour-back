@@ -8,14 +8,15 @@ import { USER_ERROR_MESSAGES } from '../constants/user.constants';
 import crypto from 'crypto';
 
 class UserService {
-  async createUser(userPayload: CreateUserPayload): Promise<void> {
+  async createUser(userPayload: CreateUserPayload): Promise<User> {
     // If password is not provided (social auth user), skip password hashing
     if (!userPayload.password) {
       const transactionManager = new TransactionManager();
+      let user!: User;
       await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
-        await userRepository.createUser(userPayload, transactionalEntityManager);
+        user = await userRepository.createUser(userPayload, transactionalEntityManager);
       });
-      return;
+      return user;
     }
 
     const salt = crypto.randomBytes(16);
@@ -40,11 +41,12 @@ class UserService {
 
           const transactionManager = new TransactionManager();
 
+          let user!: User;
           await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
-            await userRepository.createUser(userPayload, transactionalEntityManager);
+            user = await userRepository.createUser(userPayload, transactionalEntityManager);
           });
 
-          resolve();
+          resolve(user);
         } catch (error) {
           reject(error);
         }

@@ -32,9 +32,18 @@ export type UserUpdatePayload = {
   lastname: string;
   ssn: string;
   status: number;
-  gender: number;
+  gender: string;
   image: string;
 };
+
+// Profile fields the public site can edit (PATCH /me).
+export type AccountUpdatePayload = Partial<{
+  name: string;
+  lastname: string;
+  age: number | null;
+  phone: string;
+  gender: string;
+}>;
 
 export type CreateUserPayload = {
   username: string;

@@ -31,7 +31,10 @@ export class User extends BaseEntity {
   status?: number;
 
   @Column({ nullable: true })
-  gender?: number;
+  gender?: string;
+
+  @Column({ type: 'int', nullable: true })
+  age?: number | null;
 
   @Column({ nullable: true })
   image?: string;

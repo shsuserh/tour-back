@@ -3,6 +3,20 @@ import { RequestWithUser } from '../datatypes/internal/common';
 import socialAuthService from '../services/socialAuth.service';
 import serializeResponse from '../utils/serializeResponse';
 import { SocialProvider } from '../datatypes/enums/enums';
+import { whitelist } from '../config/corsOptions';
+
+// The public site's return URL from OAuth state ("<nonce>.<redirect>", nonce checked by the router),
+// if its origin is one we trust (prevents open redirects).
+const siteRedirect = (req: Request): string | null => {
+  const state = req.query.state;
+  if (typeof state !== 'string' || !state.includes('.')) return null;
+  const redirect = state.slice(state.indexOf('.') + 1);
+  try {
+    return whitelist.includes(new URL(redirect).origin) ? redirect.split('#')[0] : null;
+  } catch {
+    return null;
+  }
+};
 
 export class SocialAuthController {
   async googleCallback(req: Request, res: Response): Promise<void> {
@@ -29,14 +43,30 @@ export class SocialAuthController {
 
       const tokenResponse = await socialAuthService.findOrCreateUser(socialProfile, session);
 
+      const site = siteRedirect(req);
+      if (site) {
+        // Fragment, not query: tokens stay out of server logs and Referer headers.
+        const { accessToken, refreshToken } = tokenResponse;
+        return res.redirect(
+          `${site}#token=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}`
+        );
+      }
+
       // Redirect to frontend with tokens
       const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?accessToken=${tokenResponse.accessToken}&refreshToken=${tokenResponse.refreshToken}`;
       return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Google auth error:', error);
+      const site = siteRedirect(req);
+      if (site) return res.redirect(`${site}#error=auth_failed`);
       const errorUrl = `${process.env.FRONTEND_URL}/auth/error?message=${encodeURIComponent('Authentication failed')}`;
       return res.redirect(errorUrl);
     }
+  }
+
+  googleFailure(req: Request, res: Response): void {
+    const site = siteRedirect(req);
+    return res.redirect(site ? `${site}#error=auth_failed` : '/auth/error');
   }
 
   // Facebook callback - Removed due to review requirements

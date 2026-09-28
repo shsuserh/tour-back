@@ -1,4 +1,4 @@
-const whitelist = [
+export const whitelist = [
   process.env.BACKEND_URL || 'http://localhost:3030',
   process.env.FRONTEND_URL || 'http://localhost:3000',
   process.env.SITE_URL || 'http://localhost:5173', // public site (tour-react)

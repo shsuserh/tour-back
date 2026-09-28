@@ -31,8 +31,6 @@ class AuthServive {
     _requestUrl: string
   ): Promise<TokenResponse> {
     const { username, password } = authRequestDto;
-    let accessToken: string = '';
-    let refreshToken: string = '';
     const user = await userRepository.getUserByUsername(username);
 
     if (!user) {
@@ -52,27 +50,29 @@ class AuthServive {
       });
     }
 
+    return this.issueTokens(user.id, session);
+  }
+
+  // Creates and stores an access/refresh token pair for this user and session (User-Agent).
+  async issueTokens(userId: string, session: string): Promise<TokenResponse> {
+    const accessToken = this.generateJwtToken(userId, TokenType.accessToken);
+    const refreshToken = this.generateJwtToken(userId, TokenType.refreshToken);
     const transactionManager = new TransactionManager();
     await transactionManager.runInTransaction(async (transactionalEntityManager: EntityManager) => {
-      if (user) {
-        accessToken = this.generateJwtToken(user.id, TokenType.accessToken);
-        refreshToken = this.generateJwtToken(user.id, TokenType.refreshToken);
-        await tokenService.storeToken(
-          { payload: accessToken, session, type: TokenType.accessToken, user: user.id },
-          transactionalEntityManager
-        );
-        await tokenService.storeToken(
-          { payload: refreshToken, session, type: TokenType.refreshToken, user: user.id },
-          transactionalEntityManager
-        );
-      }
+      await tokenService.storeToken(
+        { payload: accessToken, session, type: TokenType.accessToken, user: userId },
+        transactionalEntityManager
+      );
+      await tokenService.storeToken(
+        { payload: refreshToken, session, type: TokenType.refreshToken, user: userId },
+        transactionalEntityManager
+      );
     });
     return { accessToken, refreshToken };
   }
 
   async refreshAccessToken(refreshToken: string, session: string): Promise<TokenResponse> {
     await tokenService.validateRefreshToken(refreshToken);
-    const existingRefreshToken = await tokenRepository.getActiveTokenByPayload(refreshToken);
     const decoded = jwt.decode(refreshToken) as { id: string };
     const userId = decoded.id;
     const newAccessToken = this.generateJwtToken(userId, TokenType.accessToken);
@@ -113,9 +113,13 @@ class AuthServive {
         jwtExpiresIn = env.JWT_REFRESH_TOKEN_EXPIRES_IN;
         break;
       default:
-        console.log(`ERROR: TOKEN - ${tokenType}`);
+        throw new Error(`Unknown token type: ${tokenType}`);
     }
-    return jwt.sign({ id, iat: Math.floor(Date.now() / 1000) }, jwtKey, { expiresIn: jwtExpiresIn });
+    // jwtid keeps tokens unique: two sign-ins within one second would otherwise produce the same payload.
+    return jwt.sign({ id, iat: Math.floor(Date.now() / 1000) }, jwtKey, {
+      expiresIn: jwtExpiresIn,
+      jwtid: crypto.randomUUID(),
+    });
   }
 }
 

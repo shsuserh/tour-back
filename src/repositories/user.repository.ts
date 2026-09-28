@@ -1,7 +1,7 @@
 import { EntityManager, Repository } from 'typeorm';
 import { AppDataSource } from '../config/dataSource';
 import { User } from '../entities/user.entity';
-import { CreateUserPayload, UserUpdatePayload } from '../datatypes/internal/user.internal';
+import { AccountUpdatePayload, CreateUserPayload, UserUpdatePayload } from '../datatypes/internal/user.internal';
 
 class UserRepository {
   private repository: Repository<User> = AppDataSource.getRepository(User);
@@ -12,6 +12,10 @@ class UserRepository {
     return this.repository.findOne({ where: { id } });
   }
 
+  async getUserWithSocialAuths(id: string): Promise<User | null> {
+    return this.repository.findOne({ where: { id }, relations: { socialAuths: true } });
+  }
+
   async getUserByUsername(username: string): Promise<User | null> {
     return this.repository.findOne({ where: { username } });
   }
@@ -20,7 +24,11 @@ class UserRepository {
     return this.repository.findOne({ where: { email } });
   }
 
-  async updateUser(id: string, data: UserUpdatePayload, transactionalEntityManager?: EntityManager): Promise<void> {
+  async updateUser(
+    id: string,
+    data: UserUpdatePayload | AccountUpdatePayload,
+    transactionalEntityManager?: EntityManager
+  ): Promise<void> {
     if (transactionalEntityManager) await transactionalEntityManager.update(User, { id }, data);
     else await this.repository.update(id, data);
   }
